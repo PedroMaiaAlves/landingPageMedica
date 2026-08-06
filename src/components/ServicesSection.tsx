@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { assets } from "../assets";
 
 const services = [
@@ -52,6 +53,8 @@ const services = [
 ];
 
 export function ServicesSection() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <section className="services-section section section-white" id="servicos" aria-labelledby="servicos-title">
       <div className="section-shell">
@@ -63,8 +66,15 @@ export function ServicesSection() {
           <span className="section-chip">Expertise em Oftalmologia</span>
         </div>
         <div className="services-grid">
-          {services.map((service) => (
-            <article className="service-card" key={service.title}>
+          {services.map((service, index) => (
+            <motion.article
+              className="service-card"
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+              key={service.title}
+              transition={{ delay: index * 0.05, duration: 0.45, ease: "easeOut" }}
+              viewport={{ amount: 0.25, once: true }}
+              whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            >
               <span className="service-icon">
                 <img
                   src={service.icon}
@@ -74,7 +84,7 @@ export function ServicesSection() {
               </span>
               <h3>{service.title}</h3>
               <p>{service.description}</p>
-            </article>
+            </motion.article>
           ))}
         </div>
       </div>

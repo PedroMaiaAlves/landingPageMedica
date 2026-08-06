@@ -1,6 +1,14 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { assets } from "../assets";
 
-const timelineItems = [
+const timelineItems: Array<{
+  title: string;
+  description: string;
+  date: string;
+  side: "left" | "right";
+  color: string;
+  icon?: string;
+}> = [
   {
     title: "Graduação em Medicina",
     description: "Formação com ênfase em clínica geral e propedêutica humanizada.",
@@ -26,6 +34,8 @@ const timelineItems = [
 ];
 
 export function TimelineSection() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <section className="timeline-section section" id="formacao" aria-labelledby="formacao-title">
       <div className="section-shell">
@@ -33,13 +43,35 @@ export function TimelineSection() {
           Trajetória e <span>Formação</span>
         </h2>
         <div className="timeline" aria-label="Linha do tempo de formação">
-          {timelineItems.map((item) => (
-            <article className={`timeline-item timeline-${item.side}`} key={item.title}>
+          <motion.span
+            aria-hidden="true"
+            className="timeline-line"
+            initial={shouldReduceMotion ? false : { scaleY: 0 }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+            viewport={{ amount: 0.35, once: true }}
+            whileInView={shouldReduceMotion ? undefined : { scaleY: 1 }}
+          />
+          {timelineItems.map((item, index) => (
+            <motion.article
+              className={`timeline-item timeline-${item.side}`}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 28 }}
+              key={item.title}
+              transition={{ delay: index * 0.08, duration: 0.45, ease: "easeOut" }}
+              viewport={{ amount: 0.4, once: true }}
+              whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            >
               <div className="timeline-content">
                 <h3 style={{ color: item.color }}>{item.title}</h3>
                 <p>{item.description}</p>
               </div>
-              <div className="timeline-marker" style={{ backgroundColor: item.color }}>
+              <motion.div
+                className="timeline-marker"
+                initial={shouldReduceMotion ? false : { scale: 0.78 }}
+                style={{ backgroundColor: item.color }}
+                transition={{ delay: index * 0.08 + 0.12, duration: 0.35, ease: "easeOut" }}
+                viewport={{ amount: 0.4, once: true }}
+                whileInView={shouldReduceMotion ? undefined : { scale: 1 }}
+              >
                 {item.icon ? (
                   <img
                     src={item.icon}
@@ -47,11 +79,11 @@ export function TimelineSection() {
                     style={{ width: 16.667, height: 15.833 }}
                   />
                 ) : null}
-              </div>
+              </motion.div>
               <span className={item.date === "Atualidade" ? "date-chip current" : "date-chip"}>
                 {item.date}
               </span>
-            </article>
+            </motion.article>
           ))}
         </div>
       </div>

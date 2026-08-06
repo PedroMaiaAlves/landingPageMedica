@@ -1,9 +1,14 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { assets } from "../assets";
 
 const whatsappUrl =
   "https://wa.me/5531900000000?text=Ol%C3%A1%2C%20gostaria%20de%20agendar%20um%20atendimento.";
 
 export function HeroSection() {
+  const shouldReduceMotion = useReducedMotion();
+  const revealInitial = shouldReduceMotion ? false : { opacity: 0, y: 28 };
+  const revealAnimate = shouldReduceMotion ? undefined : { opacity: 1, y: 0 };
+
   return (
     <section className="hero-section" id="inicio" aria-labelledby="hero-title">
       <div className="hero-blur" aria-hidden="true" />
@@ -18,7 +23,12 @@ export function HeroSection() {
         aria-hidden="true"
       />
       <div className="hero-shell">
-        <div className="hero-copy">
+        <motion.div
+          animate={revealAnimate}
+          className="hero-copy"
+          initial={revealInitial}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           <p className="eyebrow">
             <span aria-hidden="true" />
             OFTALMOLOGIA ESPECIALIZADA
@@ -45,8 +55,14 @@ export function HeroSection() {
               Conheça minha trajetória
             </a>
           </div>
-        </div>
-        <div className="hero-media" aria-label="Dra. Thayna Maia Alves">
+        </motion.div>
+        <motion.div
+          animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
+          aria-label="Dra. Thayna Maia Alves"
+          className="hero-media"
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+          transition={{ delay: 0.12, duration: 0.7, ease: "easeOut" }}
+        >
           <figure className="doctor-card">
             <img src={assets.heroDoctor} alt="Dra. Thayna Maia Alves" />
             <figcaption>
@@ -69,7 +85,7 @@ export function HeroSection() {
               em Hospital de Referência.
             </p>
           </aside>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
