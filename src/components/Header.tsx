@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "#sobre", label: "Sobre" },
@@ -11,8 +11,6 @@ const navItems = [
 
 export function Header() {
   const [activeId, setActiveId] = useState("");
-  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
-  const sectionRatios = useRef<Record<string, number>>({});
 
   useEffect(() => {
     const sections = navItems
@@ -23,49 +21,50 @@ export function Header() {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          sectionRatios.current[entry.target.id] = entry.isIntersecting
-            ? entry.intersectionRatio
-            : 0;
-        });
+    let frameId = 0;
 
-        const visibleSection = navItems
-          .map((item) => {
-            const id = item.href.slice(1);
+    const updateActiveSection = () => {
+      frameId = 0;
 
-            return {
-              id,
-              ratio: sectionRatios.current[id] ?? 0,
-            };
-          })
-          .sort((a, b) => b.ratio - a.ratio)[0];
+      const headerHeight = document.querySelector<HTMLElement>(".site-header")?.offsetHeight ?? 0;
+      const activationLine = headerHeight + window.innerHeight * 0.32;
+      const isNearPageEnd =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
 
-        if (visibleSection?.ratio > 0) {
-          setActiveId((currentId) => (
-            currentId === visibleSection.id ? currentId : visibleSection.id
-          ));
-        }
-      },
-      {
-        rootMargin: "-24% 0px -58% 0px",
-        threshold: [0.08, 0.18, 0.32, 0.5],
-      },
-    );
+      const nextActiveId = isNearPageEnd
+        ? sections[sections.length - 1].id
+        : sections.reduce((currentId, section) => {
+            const sectionTop = section.getBoundingClientRect().top;
 
-    sections.forEach((section) => observer.observe(section));
+            return sectionTop <= activationLine ? section.id : currentId;
+          }, "");
 
-    return () => observer.disconnect();
+      setActiveId((currentId) => (
+        currentId === nextActiveId ? currentId : nextActiveId
+      ));
+    };
+
+    const requestActiveSectionUpdate = () => {
+      if (frameId) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(updateActiveSection);
+    };
+
+    requestActiveSectionUpdate();
+    window.addEventListener("scroll", requestActiveSectionUpdate, { passive: true });
+    window.addEventListener("resize", requestActiveSectionUpdate);
+
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener("scroll", requestActiveSectionUpdate);
+      window.removeEventListener("resize", requestActiveSectionUpdate);
+    };
   }, []);
-
-  useEffect(() => {
-    linkRefs.current[activeId]?.scrollIntoView({
-      block: "nearest",
-      inline: "center",
-      behavior: "smooth",
-    });
-  }, [activeId]);
 
   return (
     <header className="site-header">
@@ -84,9 +83,6 @@ export function Header() {
                 className={isActive ? "active" : undefined}
                 href={item.href}
                 key={item.href}
-                ref={(node) => {
-                  linkRefs.current[itemId] = node;
-                }}
               >
                 {item.label}
               </a>
