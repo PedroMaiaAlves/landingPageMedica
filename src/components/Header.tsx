@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 
 const navItems = [
   { href: "#sobre", label: "Sobre" },
@@ -9,8 +9,131 @@ const navItems = [
   { href: "#contato", label: "Contato" },
 ];
 
+const scrollCancelKeys = new Set([
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+  " ",
+]);
+
+let cancelActiveScroll: (() => void) | null = null;
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function animateScrollTo(targetTop: number, shouldReduceMotion: boolean) {
+  cancelActiveScroll?.();
+
+  if (shouldReduceMotion) {
+    window.scrollTo(0, targetTop);
+    cancelActiveScroll = null;
+    return;
+  }
+
+  const startTop = window.scrollY;
+  const distance = targetTop - startTop;
+
+  if (Math.abs(distance) < 4) {
+    window.scrollTo(0, targetTop);
+    cancelActiveScroll = null;
+    return;
+  }
+
+  const duration = Math.min(760, Math.max(420, Math.abs(distance) * 0.24));
+  let animationFrame = 0;
+  let startTime = 0;
+
+  const cleanup = () => {
+    window.removeEventListener("wheel", cancel);
+    window.removeEventListener("touchstart", cancel);
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+
+  const finish = () => {
+    cleanup();
+    cancelActiveScroll = null;
+  };
+
+  const cancel = () => {
+    if (animationFrame) {
+      window.cancelAnimationFrame(animationFrame);
+    }
+
+    finish();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (scrollCancelKeys.has(event.key)) {
+      cancel();
+    }
+  };
+
+  const step = (timestamp: number) => {
+    if (!startTime) {
+      startTime = timestamp;
+    }
+
+    const elapsed = timestamp - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const nextTop = startTop + distance * easeOutCubic(progress);
+
+    window.scrollTo(0, nextTop);
+
+    if (progress < 1) {
+      animationFrame = window.requestAnimationFrame(step);
+      return;
+    }
+
+    window.scrollTo(0, targetTop);
+    finish();
+  };
+
+  cancelActiveScroll = cancel;
+  window.addEventListener("wheel", cancel, { passive: true });
+  window.addEventListener("touchstart", cancel, { passive: true });
+  window.addEventListener("keydown", handleKeyDown);
+  animationFrame = window.requestAnimationFrame(step);
+}
+
 export function Header() {
   const [activeId, setActiveId] = useState("");
+
+  const handleAnchorClick = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    const target = document.getElementById(href.slice(1));
+
+    if (!target) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const headerHeight = document.querySelector<HTMLElement>(".site-header")?.offsetHeight ?? 0;
+    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - headerHeight - 16);
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const shouldTrackAsActive = navItems.some((item) => item.href === href);
+
+    window.history.pushState(null, "", href);
+    animateScrollTo(top, prefersReducedMotion);
+
+    setActiveId(shouldTrackAsActive ? href.slice(1) : "");
+  };
 
   useEffect(() => {
     const sections = navItems
@@ -69,7 +192,12 @@ export function Header() {
   return (
     <header className="site-header">
       <nav className="site-nav" aria-label="Navegação principal">
-        <a className="brand" href="#inicio" aria-label="Ir para o início">
+        <a
+          aria-label="Ir para o início"
+          className="brand"
+          href="#inicio"
+          onClick={(event) => handleAnchorClick(event, "#inicio")}
+        >
           Dra. Thayna Maia Alves
         </a>
         <div className="nav-links">
@@ -83,6 +211,7 @@ export function Header() {
                 className={isActive ? "active" : undefined}
                 href={item.href}
                 key={item.href}
+                onClick={(event) => handleAnchorClick(event, item.href)}
               >
                 {item.label}
               </a>
